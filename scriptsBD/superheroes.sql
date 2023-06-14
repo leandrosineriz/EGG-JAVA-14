@@ -21,3 +21,4 @@ CREATE TABLE personajes (
   id_creador INT UNSIGNED NOT NULL,
   FOREIGN KEY (id_creador) REFERENCES creador(id_creador)
   );
+
