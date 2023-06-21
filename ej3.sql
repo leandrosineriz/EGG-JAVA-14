@@ -76,12 +76,29 @@ having e.division = 'pacific'
 order by media_puntos desc;
 /*17. Mostrar los puntos de cada equipo en los partidos, tanto de local como de visitante.*/
 select e.nombre, 
-sum(if(e.nombre=p.equipo_local,puntos_local,0))+
-sum(if(e.nombre=p.equipo_visitante,puntos_visitante,0)) as puntos_totales
+sum(if(e.nombre=p.equipo_local,puntos_local,puntos_visitante)) as puntos_totales,
+p.temporada
 from partidos p
 inner join equipos e on e.nombre = p.equipo_local or e.nombre = p.equipo_visitante
-group by e.nombre
+group by p.temporada, e.nombre
 order by puntos_totales desc;
+
+/*OTRA FORMA DE HACERLO
+
+SELECT temporada, equipo, SUM(puntos_totales) AS puntos_totales
+FROM (
+    SELECT temporada, equipo_local AS equipo, SUM(puntos_local) AS puntos_totales
+    FROM partidos
+    GROUP BY temporada, equipo_local
+    UNION ALL
+    SELECT temporada, equipo_visitante AS equipo, SUM(puntos_visitante) AS puntos_totales
+    FROM partidos
+    GROUP BY temporada, equipo_visitante
+) AS subquery
+GROUP BY temporada, equipo
+order by puntos_totales desc;
+*/
+
 /*18. Mostrar quien gana en cada partido (codigo, equipo_local, equipo_visitante,
 equipo_ganador), en caso de empate sera null.*/
 select 
