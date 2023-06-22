@@ -297,33 +297,108 @@ inner join producto p on dp.codigo_producto= p.codigo_producto
 group by dp.codigo_producto
 having total>3000;
 /*Subconsultas con operadores básicos de comparación
-1. Devuelve el nombre del cliente con mayor límite de crédito.
-2. Devuelve el nombre del producto que tenga el precio de venta más caro.
-3. Devuelve el nombre del producto del que se han vendido más unidades. (Tenga en cuenta
+1. Devuelve el nombre del cliente con mayor límite de crédito.*/
+select * from cliente
+where limite_credito=(
+select max(limite_credito) from cliente);
+/*2. Devuelve el nombre del producto que tenga el precio de venta más caro.*/
+select * from producto
+where precio_venta=(
+select max(precio_venta) from producto);
+/*3. Devuelve el nombre del producto del que se han vendido más unidades. (Tenga en cuenta
 que tendrá que calcular cuál es el número total de unidades que se han vendido de cada
 producto a partir de los datos de la tabla detalle_pedido. Una vez que sepa cuál es el código
-del producto, puede obtener su nombre fácilmente.)
-4. Los clientes cuyo límite de crédito sea mayor que los pagos que haya realizado. (Sin utilizar
-INNER JOIN).
-5. Devuelve el producto que más unidades tiene en stock.
-6. Devuelve el producto que menos unidades tiene en stock.
-7. Devuelve el nombre, los apellidos y el email de los empleados que están a cargo de Alberto
-Soria.
-Subconsultas con ALL y ANY
-1. Devuelve el nombre del cliente con mayor límite de crédito.
-2. Devuelve el nombre del producto que tenga el precio de venta más caro.
-3. Devuelve el producto que menos unidades tiene en stock.
-Subconsultas con IN y NOT IN
-1. Devuelve el nombre, apellido1 y cargo de los empleados que no representen a ningún
-cliente.
-2. Devuelve un listado que muestre solamente los clientes que no han realizado ningún pago.
-3. Devuelve un listado que muestre solamente los clientes que sí han realizado ningún pago.
-4. Devuelve un listado de los productos que nunca han aparecido en un pedido.
-5. Devuelve el nombre, apellidos, puesto y teléfono de la oficina de aquellos empleados que
-no sean representante de ventas de ningún cliente.
-Subconsultas con EXISTS y NOT EXISTS
-1. Devuelve un listado que muestre solamente los clientes que no han realizado ningún
-pago.
-2. Devuelve un listado que muestre solamente los clientes que sí han realizado ningún pago.
-3. Devuelve un listado de los productos que nunca han aparecido en un pedido.
-4. Devuelve un listado de los productos que han aparecido en un pedido alguna vez.*/
+del producto, puede obtener su nombre fácilmente.)*/
+select * from producto p
+where p.codigo_producto=(
+select dp.codigo_producto from detalle_pedido dp
+group by dp.codigo_producto
+order by sum(cantidad) desc limit 1);
+/*4. Los clientes cuyo límite de crédito sea mayor que los pagos que haya realizado. (Sin utilizar
+INNER JOIN).*/
+select distinct c.* from cliente c, pago p
+where c.limite_credito>p.total
+and c.codigo_cliente=p.codigo_cliente;
+/*5. Devuelve el producto que más unidades tiene en stock.*/
+select * from producto
+where cantidad_en_stock=(
+select max(cantidad_en_stock) from producto);
+/*6. Devuelve el producto que menos unidades tiene en stock.*/
+select * from producto
+where cantidad_en_stock=(
+select min(cantidad_en_stock) from producto);
+/*7. Devuelve el nombre, los apellidos y el email de los empleados que están a cargo de Alberto
+Soria.*/
+select * from empleado
+where codigo_jefe=(
+select codigo_empleado from empleado
+where nombre = 'Alberto'
+and apellido1 = 'Soria');
+/*Subconsultas con ALL y ANY
+1. Devuelve el nombre del cliente con mayor límite de crédito.*/
+select * from cliente
+where limite_credito = any(
+select max(limite_credito) from cliente);
+/*2. Devuelve el nombre del producto que tenga el precio de venta más caro.*/
+select * from producto
+where precio_venta >= any(
+select max(precio_venta) from producto);
+/*3. Devuelve el producto que menos unidades tiene en stock.*/
+
+/*Subconsultas con IN y NOT IN*/
+/*1. Devuelve el nombre, apellido1 y cargo de los empleados que no representen a ningún
+cliente.*/
+select * from empleado
+where codigo_empleado in (
+select codigo_empleado from empleado e
+left join cliente c on e.codigo_empleado=c.codigo_empleado_rep_ventas
+where c.codigo_cliente is null);
+/*2. Devuelve un listado que muestre solamente los clientes que no han realizado ningún pago.*/
+select distinct * from cliente
+where codigo_cliente in (
+select c.codigo_cliente from cliente c
+left join pago p on c.codigo_cliente=p.codigo_cliente
+where p.id_transaccion is null);
+/*3. Devuelve un listado que muestre solamente los clientes que sí han realizado ningún pago.*/
+select distinct * from cliente
+where codigo_cliente not in (
+select c.codigo_cliente from cliente c
+left join pago p on c.codigo_cliente=p.codigo_cliente
+where p.id_transaccion is null);
+/*4. Devuelve un listado de los productos que nunca han aparecido en un pedido.*/
+select distinct * from producto
+where codigo_producto not in (
+select p.codigo_producto from producto p
+left join detalle_pedido pe on p.codigo_producto=pe.codigo_producto
+where pe.codigo_pedido is not null);
+/*5. Devuelve el nombre, apellidos, puesto y teléfono de la oficina de aquellos empleados que
+no sean representante de ventas de ningún cliente.*/
+select * from empleado e2
+where codigo_empleado not in (
+select codigo_empleado from empleado e
+left join cliente c on e.codigo_empleado=c.codigo_empleado_rep_ventas
+where c.codigo_cliente is not null);
+
+/*Subconsultas con EXISTS y NOT EXISTS*/
+
+/*1. Devuelve un listado que muestre solamente los clientes que no han realizado ningún
+pago.*/
+select * from cliente c
+where not exists (
+select p.id_transaccion from pago p 
+where c.codigo_cliente=p.codigo_cliente);
+/*2. Devuelve un listado que muestre solamente los clientes que sí han realizado ningún pago.*/
+select * from cliente c
+where exists (
+select p.id_transaccion from pago p 
+where c.codigo_cliente=p.codigo_cliente);
+/*3. Devuelve un listado de los productos que nunca han aparecido en un pedido.*/
+select * from producto p
+where not exists (
+select * from detalle_pedido dp 
+where p.codigo_producto=dp.codigo_producto);
+/*4. Devuelve un listado de los productos que han aparecido en un pedido alguna vez.*/
+select * from producto p
+where exists (
+select * from detalle_pedido dp 
+where p.codigo_producto=dp.codigo_producto);
